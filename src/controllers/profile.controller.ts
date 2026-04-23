@@ -55,16 +55,12 @@ function parseNaturalLanguageQuery(query: string) {
     uk: "GB"
   };
 
-  if (q.includes("male") || q.includes("males")) {
-    if (!(q.includes("female") || q.includes("females"))) {
-      filters.gender = "male";
-    }
+  if ((q.includes("male") || q.includes("males")) && !(q.includes("female") || q.includes("females"))) {
+    filters.gender = "male";
   }
 
-  if (q.includes("female") || q.includes("females")) {
-    if (!(q.includes("male and female") || q.includes("female and male"))) {
-      filters.gender = "female";
-    }
+  if ((q.includes("female") || q.includes("females")) && !(q.includes("male and female") || q.includes("female and male"))) {
+    filters.gender = "female";
   }
 
   if (q.includes("young")) {
@@ -229,13 +225,17 @@ export async function getAllProfilesHandler(req: Request, res: Response) {
     }
 
     const page = parseNumber(req.query.page) ?? 1;
-    const limit = parseNumber(req.query.limit) ?? 10;
+    let limit = parseNumber(req.query.limit) ?? 10;
 
-    if (page < 1 || limit < 1 || limit > 50) {
+    if (page < 1 || limit < 1) {
       return res.status(422).json({
         status: "error",
         message: "Invalid query parameters"
       });
+    }
+
+    if (limit > 50) {
+      limit = 50;
     }
 
     const result = await getAllProfiles({
@@ -288,13 +288,17 @@ export async function searchProfilesHandler(req: Request, res: Response) {
     }
 
     const page = parseNumber(req.query.page) ?? 1;
-    const limit = parseNumber(req.query.limit) ?? 10;
+    let limit = parseNumber(req.query.limit) ?? 10;
 
-    if (page < 1 || limit < 1 || limit > 50) {
+    if (page < 1 || limit < 1) {
       return res.status(422).json({
         status: "error",
         message: "Invalid query parameters"
       });
+    }
+
+    if (limit > 50) {
+      limit = 50;
     }
 
     const parsedFilters = parseNaturalLanguageQuery(q);

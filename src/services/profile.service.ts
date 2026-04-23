@@ -3,11 +3,19 @@ import { Op, Order, WhereOptions } from "sequelize";
 import Profile from "../models/profile.model";
 import { fetchAndProcessProfileData } from "./external-api.service";
 
+function normalizeFullName(name: string): string {
+  return name.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function extractFirstName(fullName: string): string {
+  return fullName.trim().split(/\s+/)[0].toLowerCase();
+}
+
 export async function createProfile(name: string) {
-  const normalizedName = name.trim().toLowerCase();
+  const normalizedFullName = normalizeFullName(name);
 
   const existingProfile = await Profile.findOne({
-    where: { name: normalizedName }
+    where: { name: normalizedFullName }
   });
 
   if (existingProfile) {
@@ -17,11 +25,12 @@ export async function createProfile(name: string) {
     };
   }
 
-  const enrichedData = await fetchAndProcessProfileData(normalizedName);
+  const firstName = extractFirstName(normalizedFullName);
+  const enrichedData = await fetchAndProcessProfileData(firstName);
 
   const newProfile = await Profile.create({
     id: uuidv7(),
-    name: normalizedName,
+    name: normalizedFullName,
     ...enrichedData,
     created_at: new Date()
   });
@@ -103,7 +112,6 @@ export async function getAllProfiles(filters: GetAllProfilesFilters) {
 
   const sortBy = filters.sort_by || "created_at";
   const sortOrder = (filters.order || "desc").toUpperCase() as "ASC" | "DESC";
-
   const order: Order = [[sortBy, sortOrder]];
   const offset = (filters.page - 1) * filters.limit;
 
