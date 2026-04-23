@@ -6,15 +6,17 @@ interface ProfileAttributes {
   name: string;
   gender: string;
   gender_probability: number;
-  sample_size: number;
+  sample_size?: number;
   age: number;
   age_group: string;
   country_id: string;
+  country_name: string;
   country_probability: number;
   created_at: Date;
 }
 
-interface ProfileCreationAttributes extends Optional<ProfileAttributes, "id" | "created_at"> {}
+interface ProfileCreationAttributes
+  extends Optional<ProfileAttributes, "id" | "created_at" | "sample_size"> {}
 
 class Profile
   extends Model<ProfileAttributes, ProfileCreationAttributes>
@@ -24,10 +26,11 @@ class Profile
   public name!: string;
   public gender!: string;
   public gender_probability!: number;
-  public sample_size!: number;
+  public sample_size?: number;
   public age!: number;
   public age_group!: string;
   public country_id!: string;
+  public country_name!: string;
   public country_probability!: number;
   public created_at!: Date;
 }
@@ -54,7 +57,7 @@ Profile.init(
     },
     sample_size: {
       type: DataTypes.INTEGER,
-      allowNull: false
+      allowNull: true
     },
     age: {
       type: DataTypes.INTEGER,
@@ -65,6 +68,10 @@ Profile.init(
       allowNull: false
     },
     country_id: {
+      type: DataTypes.STRING(2),
+      allowNull: false
+    },
+    country_name: {
       type: DataTypes.STRING,
       allowNull: false
     },

@@ -8,7 +8,29 @@ export interface EnrichedProfileData {
   age: number;
   age_group: string;
   country_id: string;
+  country_name: string;
   country_probability: number;
+}
+
+const countryMap: Record<string, string> = {
+  NG: "Nigeria",
+  KE: "Kenya",
+  AO: "Angola",
+  BJ: "Benin",
+  GH: "Ghana",
+  ZA: "South Africa",
+  CM: "Cameroon",
+  US: "United States",
+  GB: "United Kingdom",
+  FR: "France",
+  DE: "Germany",
+  IN: "India",
+  CA: "Canada",
+  AU: "Australia"
+};
+
+export function getCountryName(countryId: string): string {
+  return countryMap[countryId] || countryId;
 }
 
 export async function fetchAndProcessProfileData(name: string): Promise<EnrichedProfileData> {
@@ -47,6 +69,7 @@ export async function fetchAndProcessProfileData(name: string): Promise<Enriched
     age: ageData.age,
     age_group: getAgeGroup(ageData.age),
     country_id: topCountry.country_id,
+    country_name: getCountryName(topCountry.country_id),
     country_probability: topCountry.probability
   };
 }
