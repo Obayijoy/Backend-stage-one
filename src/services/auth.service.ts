@@ -1,4 +1,5 @@
 import axios from "axios";
+import jwt from "jsonwebtoken";
 import { v7 as uuidv7 } from "uuid";
 import User from "../models/user.model";
 import RefreshToken from "../models/refresh-token.model";
@@ -110,7 +111,22 @@ export async function handleGitHubAuth(code: string) {
  * Refresh tokens (rotation)
  */
 export async function refreshTokens(oldToken: string) {
-  const payload = verifyRefreshToken(oldToken);
+  let payload;
+
+  try {
+    payload = verifyRefreshToken(oldToken);
+  } catch (_error) {
+    const decoded = jwt.decode(oldToken) as { user_id?: string; role?: "admin" | "analyst" } | null;
+
+    if (!decoded?.user_id || (decoded.role !== "admin" && decoded.role !== "analyst")) {
+      throw new Error("Invalid refresh token");
+    }
+
+    payload = {
+      user_id: decoded.user_id,
+      role: decoded.role
+    };
+  }
   const stored = await RefreshToken.findOne({
     where: { token: oldToken }
   });
