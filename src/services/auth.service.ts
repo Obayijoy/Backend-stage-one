@@ -159,3 +159,52 @@ export async function logoutUser(refreshToken: string) {
     await stored.save();
   }
 }
+
+export async function handleTestAuth(role: "admin" | "analyst") {
+  const githubId = `test-${role}`;
+  const username = `${role}-user`;
+
+  let user = await User.findOne({ where: { github_id: githubId } });
+
+  if (!user) {
+    user = await User.create({
+      id: uuidv7(),
+      github_id: githubId,
+      username,
+      email: `${role}@insighta.test`,
+      avatar_url: null,
+      role,
+      is_active: true,
+      last_login_at: new Date(),
+      created_at: new Date()
+    });
+  } else {
+    user.role = role;
+    user.is_active = true;
+    user.last_login_at = new Date();
+    await user.save();
+  }
+
+  const payload = {
+    user_id: user.id,
+    role: user.role
+  };
+
+  const accessToken = generateAccessToken(payload);
+  const refreshToken = generateRefreshToken(payload);
+
+  await RefreshToken.create({
+    id: uuidv7(),
+    user_id: user.id,
+    token: refreshToken,
+    expires_at: new Date(Date.now() + REFRESH_TOKEN_TTL_MS),
+    is_revoked: false,
+    created_at: new Date()
+  });
+
+  return {
+    user,
+    accessToken,
+    refreshToken
+  };
+}

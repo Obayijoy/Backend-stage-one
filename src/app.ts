@@ -3,6 +3,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import profileRoutes from "./routes/profile.routes";
 import authRoutes from "./routes/auth.routes";
+import userRoutes from "./routes/user.routes";
 import { requireAuth } from "./middlewares/auth.middleware";
 import { requireApiVersion } from "./middlewares/api-version.middleware";
 import { authRateLimiter, apiRateLimiter } from "./middlewares/rate-limit.middleware";
@@ -26,6 +27,7 @@ app.get("/", (_req, res) => {
 });
 
 app.use("/auth", authRateLimiter, authRoutes);
+app.use("/api", requireAuth, requireCsrfToken, apiRateLimiter, userRoutes);
 app.use("/api", requireAuth, requireCsrfToken, apiRateLimiter, requireApiVersion, profileRoutes);
 
 export default app;
