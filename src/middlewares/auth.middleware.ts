@@ -17,15 +17,16 @@ export async function requireAuth(
 ) {
   try {
     const authHeader = req.headers.authorization;
+    const cookieToken = req.cookies?.access_token;
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    if ((!authHeader || !authHeader.startsWith("Bearer ")) && !cookieToken) {
       return res.status(401).json({
         status: "error",
         message: "Authentication required"
       });
     }
 
-    const token = authHeader.split(" ")[1];
+    const token = authHeader?.startsWith("Bearer ") ? authHeader.split(" ")[1] : cookieToken;
     const payload = verifyAccessToken(token);
 
     const user = await User.findByPk(payload.user_id);

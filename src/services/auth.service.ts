@@ -10,6 +10,8 @@ import {
 
 const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID!;
 const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET!;
+const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:3000";
+const REFRESH_TOKEN_TTL_MS = 5 * 60 * 1000;
 
 /**
  * Exchange GitHub code for access token
@@ -20,9 +22,11 @@ async function exchangeCodeForToken(code: string) {
     {
       client_id: GITHUB_CLIENT_ID,
       client_secret: GITHUB_CLIENT_SECRET,
-      code
+      code,
+      redirect_uri: `${BACKEND_URL}/auth/github/callback`
     },
     {
+      timeout: 10000,
       headers: {
         Accept: "application/json"
       }
@@ -41,6 +45,7 @@ async function exchangeCodeForToken(code: string) {
  */
 async function fetchGitHubUser(token: string) {
   const response = await axios.get("https://api.github.com/user", {
+    timeout: 10000,
     headers: {
       Authorization: `Bearer ${token}`
     }
@@ -89,7 +94,7 @@ export async function handleGitHubAuth(code: string) {
     id: uuidv7(),
     user_id: user.id,
     token: refreshToken,
-    expires_at: new Date(Date.now() + 5 * 60 * 1000),
+    expires_at: new Date(Date.now() + REFRESH_TOKEN_TTL_MS),
     is_revoked: false,
     created_at: new Date()
   });
@@ -130,7 +135,7 @@ export async function refreshTokens(oldToken: string) {
     id: uuidv7(),
     user_id: payload.user_id,
     token: newRefreshToken,
-    expires_at: new Date(Date.now() + 5 * 60 * 1000),
+    expires_at: new Date(Date.now() + REFRESH_TOKEN_TTL_MS),
     is_revoked: false,
     created_at: new Date()
   });

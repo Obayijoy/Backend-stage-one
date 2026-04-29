@@ -1,16 +1,20 @@
 import express from "express";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import profileRoutes from "./routes/profile.routes";
 import authRoutes from "./routes/auth.routes";
 import { requireAuth } from "./middlewares/auth.middleware";
 import { requireApiVersion } from "./middlewares/api-version.middleware";
 import { authRateLimiter, apiRateLimiter } from "./middlewares/rate-limit.middleware";
 import { requestLogger } from "./middlewares/logger.middleware";
+import { requireCsrfToken } from "./middlewares/csrf.middleware";
 
 const app = express();
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 
-app.use(cors({ origin: "*" }));
+app.use(cors({ origin: FRONTEND_URL, credentials: true }));
 app.use(express.json());
+app.use(cookieParser());
 app.use(requestLogger);
 
 app.get("/", (_req, res) => {
@@ -21,6 +25,6 @@ app.get("/", (_req, res) => {
 });
 
 app.use("/auth", authRateLimiter, authRoutes);
-app.use("/api", requireAuth, apiRateLimiter, requireApiVersion, profileRoutes);
+app.use("/api", requireAuth, requireCsrfToken, apiRateLimiter, requireApiVersion, profileRoutes);
 
 export default app;
