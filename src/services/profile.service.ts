@@ -11,6 +11,20 @@ function extractFirstName(fullName: string): string {
   return fullName.trim().split(/\s+/)[0].toLowerCase();
 }
 
+interface GetAllProfilesFilters {
+  gender?: string;
+  age_group?: string;
+  country_id?: string;
+  min_age?: number;
+  max_age?: number;
+  min_gender_probability?: number;
+  min_country_probability?: number;
+  sort_by?: "age" | "created_at" | "gender_probability";
+  order?: "asc" | "desc";
+  page: number;
+  limit: number;
+}
+
 export async function createProfile(name: string) {
   const normalizedFullName = normalizeFullName(name);
 
@@ -51,21 +65,7 @@ export async function getProfileById(id: string) {
   return profile;
 }
 
-interface GetAllProfilesFilters {
-  gender?: string;
-  age_group?: string;
-  country_id?: string;
-  min_age?: number;
-  max_age?: number;
-  min_gender_probability?: number;
-  min_country_probability?: number;
-  sort_by?: "age" | "created_at" | "gender_probability";
-  order?: "asc" | "desc";
-  page: number;
-  limit: number;
-}
-
-export async function getAllProfiles(filters: GetAllProfilesFilters) {
+function buildWhere(filters: Partial<GetAllProfilesFilters>): WhereOptions {
   const where: WhereOptions = {};
 
   if (filters.gender) {
@@ -110,9 +110,22 @@ export async function getAllProfiles(filters: GetAllProfilesFilters) {
     };
   }
 
-  const sortBy = filters.sort_by || "created_at";
-  const sortOrder = (filters.order || "desc").toUpperCase() as "ASC" | "DESC";
-  const order: Order = [[sortBy, sortOrder]];
+  return where;
+}
+
+function buildOrder(
+  sort_by?: "age" | "created_at" | "gender_probability",
+  order?: "asc" | "desc"
+): Order {
+  const sortBy = sort_by || "created_at";
+  const sortOrder = (order || "desc").toUpperCase() as "ASC" | "DESC";
+
+  return [[sortBy, sortOrder]];
+}
+
+export async function getAllProfiles(filters: GetAllProfilesFilters) {
+  const where = buildWhere(filters);
+  const order = buildOrder(filters.sort_by, filters.order);
   const offset = (filters.page - 1) * filters.limit;
 
   const { count, rows } = await Profile.findAndCountAll({
@@ -141,38 +154,7 @@ interface SearchProfileFilters {
 }
 
 export async function searchProfiles(filters: SearchProfileFilters) {
-  const where: WhereOptions = {};
-
-  if (filters.gender) {
-    where.gender = {
-      [Op.iLike]: filters.gender
-    };
-  }
-
-  if (filters.age_group) {
-    where.age_group = {
-      [Op.iLike]: filters.age_group
-    };
-  }
-
-  if (filters.country_id) {
-    where.country_id = {
-      [Op.iLike]: filters.country_id
-    };
-  }
-
-  if (filters.min_age !== undefined || filters.max_age !== undefined) {
-    where.age = {};
-
-    if (filters.min_age !== undefined) {
-      (where.age as any)[Op.gte] = filters.min_age;
-    }
-
-    if (filters.max_age !== undefined) {
-      (where.age as any)[Op.lte] = filters.max_age;
-    }
-  }
-
+  const where = buildWhere(filters);
   const offset = (filters.page - 1) * filters.limit;
 
   const { count, rows } = await Profile.findAndCountAll({
@@ -188,6 +170,18 @@ export async function searchProfiles(filters: SearchProfileFilters) {
     total: count,
     data: rows
   };
+}
+
+export async function exportProfiles(filters: Partial<GetAllProfilesFilters>) {
+  const where = buildWhere(filters);
+  const order = buildOrder(filters.sort_by, filters.order);
+
+  const profiles = await Profile.findAll({
+    where,
+    order
+  });
+
+  return profiles;
 }
 
 export async function deleteProfileById(id: string) {

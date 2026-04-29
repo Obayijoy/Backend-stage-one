@@ -2,10 +2,12 @@ import { Request, Response } from "express";
 import {
   createProfile,
   deleteProfileById,
+  exportProfiles,
   getAllProfiles,
   getProfileById,
   searchProfiles
 } from "../services/profile.service";
+import { profilesToCsv } from "../utils/csv.util";
 
 function parseNumber(value: unknown): number | undefined {
   if (value === undefined) {
@@ -19,6 +21,19 @@ function parseNumber(value: unknown): number | undefined {
   }
 
   return parsed;
+}
+
+function buildPaginationLinks(
+  basePath: string,
+  page: number,
+  limit: number,
+  totalPages: number
+) {
+  return {
+    self: `${basePath}?page=${page}&limit=${limit}`,
+    next: page < totalPages ? `${basePath}?page=${page + 1}&limit=${limit}` : null,
+    prev: page > 1 ? `${basePath}?page=${page - 1}&limit=${limit}` : null
+  };
 }
 
 function parseNaturalLanguageQuery(query: string) {
@@ -252,11 +267,15 @@ export async function getAllProfilesHandler(req: Request, res: Response) {
       limit
     });
 
+    const totalPages = Math.ceil(result.total / result.limit);
+
     return res.status(200).json({
       status: "success",
       page: result.page,
       limit: result.limit,
       total: result.total,
+      total_pages: totalPages,
+      links: buildPaginationLinks("/api/profiles", result.page, result.limit, totalPages),
       data: result.data
     });
   } catch (error) {
@@ -309,11 +328,15 @@ export async function searchProfilesHandler(req: Request, res: Response) {
       limit
     });
 
+    const totalPages = Math.ceil(result.total / result.limit);
+
     return res.status(200).json({
       status: "success",
       page: result.page,
       limit: result.limit,
       total: result.total,
+      total_pages: totalPages,
+      links: buildPaginationLinks("/api/profiles/search", result.page, result.limit, totalPages),
       data: result.data
     });
   } catch (error) {
@@ -336,6 +359,45 @@ export async function searchProfilesHandler(req: Request, res: Response) {
     return res.status(500).json({
       status: "error",
       message: "Internal server error"
+    });
+  }
+}
+
+export async function exportProfilesHandler(req: Request, res: Response) {
+  try {
+    const sortBy = req.query.sort_by as "age" | "created_at" | "gender_probability" | undefined;
+    const order = req.query.order as "asc" | "desc" | undefined;
+    const format = req.query.format as string | undefined;
+
+    if (format !== "csv") {
+      return res.status(400).json({
+        status: "error",
+        message: "Only csv export is supported"
+      });
+    }
+
+    const profiles = await exportProfiles({
+      gender: req.query.gender as string | undefined,
+      age_group: req.query.age_group as string | undefined,
+      country_id: req.query.country_id as string | undefined,
+      min_age: parseNumber(req.query.min_age),
+      max_age: parseNumber(req.query.max_age),
+      min_gender_probability: parseNumber(req.query.min_gender_probability),
+      min_country_probability: parseNumber(req.query.min_country_probability),
+      sort_by: sortBy,
+      order: order
+    });
+
+    const csv = profilesToCsv(profiles);
+
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader("Content-Disposition", "attachment; filename=profiles.csv");
+
+    return res.status(200).send(csv);
+  } catch (_error) {
+    return res.status(500).json({
+      status: "error",
+      message: "Export failed"
     });
   }
 }

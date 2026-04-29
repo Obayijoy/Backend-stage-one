@@ -2,6 +2,8 @@ import dotenv from "dotenv";
 import app from "./app";
 import { sequelize } from "./config/db";
 import "./models/profile.model";
+import "./models/user.model";
+import "./models/refresh-token.model";
 
 dotenv.config();
 
