@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
 
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET || "dev_access_secret";
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || "dev_refresh_secret";
@@ -10,13 +11,15 @@ export interface TokenPayload {
 
 export function generateAccessToken(payload: TokenPayload): string {
   return jwt.sign(payload, ACCESS_TOKEN_SECRET, {
-    expiresIn: "3m"
+    expiresIn: "3m",
+    jwtid: crypto.randomUUID()
   });
 }
 
 export function generateRefreshToken(payload: TokenPayload): string {
   return jwt.sign(payload, REFRESH_TOKEN_SECRET, {
-    expiresIn: "5m"
+    expiresIn: "5m",
+    jwtid: crypto.randomUUID()
   });
 }
 
