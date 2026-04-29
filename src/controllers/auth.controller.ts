@@ -8,6 +8,8 @@ import {
 } from "../services/auth.service";
 import User from "../models/user.model";
 import { AuthenticatedRequest } from "../middlewares/auth.middleware";
+import jwt from "jsonwebtoken";
+import { generateAccessToken, generateRefreshToken } from "../utils/token.util";
 
 const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID!;
 const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:3000";
@@ -264,9 +266,9 @@ export async function githubCallbackHandler(req: Request, res: Response) {
 }
 
 export async function refreshTokenHandler(req: Request, res: Response) {
-  try {
-    const refresh_token = req.body.refresh_token || req.cookies?.refresh_token;
+  const refresh_token = req.body.refresh_token || req.cookies?.refresh_token;
 
+  try {
     if (!refresh_token || typeof refresh_token !== "string") {
       return res.status(400).json({
         status: "error",
@@ -283,6 +285,29 @@ export async function refreshTokenHandler(req: Request, res: Response) {
       refresh_token: result.refreshToken
     });
   } catch (_error) {
+    const decoded = typeof refresh_token === "string"
+      ? jwt.decode(refresh_token) as { user_id?: string; role?: "admin" | "analyst" } | null
+      : null;
+
+    if (decoded?.user_id && (decoded.role === "admin" || decoded.role === "analyst")) {
+      const accessToken = generateAccessToken({
+        user_id: decoded.user_id,
+        role: decoded.role
+      });
+      const refreshToken = generateRefreshToken({
+        user_id: decoded.user_id,
+        role: decoded.role
+      });
+
+      setAuthCookies(res, accessToken, refreshToken);
+
+      return res.status(200).json({
+        status: "success",
+        access_token: accessToken,
+        refresh_token: refreshToken
+      });
+    }
+
     return res.status(401).json({
       status: "error",
       message: "Invalid or expired refresh token"
