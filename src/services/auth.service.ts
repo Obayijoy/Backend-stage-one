@@ -110,23 +110,23 @@ export async function handleGitHubAuth(code: string) {
  * Refresh tokens (rotation)
  */
 export async function refreshTokens(oldToken: string) {
+  const payload = verifyRefreshToken(oldToken);
   const stored = await RefreshToken.findOne({
     where: { token: oldToken }
   });
 
-  if (!stored || stored.is_revoked) {
+  if (stored?.is_revoked) {
     throw new Error("Invalid refresh token");
   }
 
-  if (new Date() > stored.expires_at) {
+  if (stored && new Date() > stored.expires_at) {
     throw new Error("Refresh token expired");
   }
 
-  const payload = verifyRefreshToken(oldToken);
-
-  // revoke old token
-  stored.is_revoked = true;
-  await stored.save();
+  if (stored) {
+    stored.is_revoked = true;
+    await stored.save();
+  }
 
   const newAccessToken = generateAccessToken(payload);
   const newRefreshToken = generateRefreshToken(payload);
