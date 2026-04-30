@@ -14,6 +14,15 @@ const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET!;
 const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:3000";
 const REFRESH_TOKEN_TTL_MS = 5 * 60 * 1000;
 
+function roleForGitHubUsername(username: string): "admin" | "analyst" {
+  const adminUsers = (process.env.ADMIN_GITHUB_USERNAMES || "")
+    .split(",")
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+
+  return adminUsers.includes(username.toLowerCase()) ? "admin" : "analyst";
+}
+
 /**
  * Exchange GitHub code for access token
  */
@@ -64,6 +73,7 @@ export async function handleGitHubAuth(code: string) {
 
   const githubId = String(githubUser.id);
   const username = githubUser.login;
+  const role = roleForGitHubUsername(username);
 
   let user = await User.findOne({ where: { github_id: githubId } });
 
@@ -74,11 +84,15 @@ export async function handleGitHubAuth(code: string) {
       username,
       email: githubUser.email || null,
       avatar_url: githubUser.avatar_url || null,
-      role: "analyst",
+      role,
       is_active: true,
       created_at: new Date()
     });
   } else {
+    user.username = username;
+    user.email = githubUser.email || user.email;
+    user.avatar_url = githubUser.avatar_url || user.avatar_url;
+    user.role = role;
     user.last_login_at = new Date();
     await user.save();
   }

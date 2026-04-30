@@ -108,4 +108,7 @@ GITHUB_CLIENT_SECRET=
 ACCESS_TOKEN_SECRET=
 REFRESH_TOKEN_SECRET=
 OAUTH_STATE_SECRET=
+ADMIN_GITHUB_USERNAMES=yourgithubusername
 ```
+
+`ADMIN_GITHUB_USERNAMES` is a comma-separated allowlist. Matching GitHub users are assigned the `admin` role; all other GitHub users default to `analyst`.

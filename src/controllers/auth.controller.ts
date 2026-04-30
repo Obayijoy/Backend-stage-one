@@ -258,7 +258,7 @@ export async function githubCallbackHandler(req: Request, res: Response) {
   } catch (error) {
     console.error("GitHub callback failed:", error);
 
-    return res.status(500).json({
+    return res.status(400).json({
       status: "error",
       message: "GitHub authentication failed"
     });
