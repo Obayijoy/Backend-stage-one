@@ -187,7 +187,7 @@ export function githubLoginHandler(req: Request, res: Response) {
   const providedState = req.query.state as string | undefined;
   const codeChallenge = req.query.code_challenge as string | undefined;
   const codeChallengeMethod = req.query.code_challenge_method as string | undefined;
-  const statePayload = {
+  const statePayload: StatePayload = {
     source,
     nonce: crypto.randomBytes(16).toString("hex"),
     code_challenge: codeChallenge,
