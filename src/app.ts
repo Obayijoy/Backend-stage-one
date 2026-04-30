@@ -27,7 +27,7 @@ app.get("/", (_req, res) => {
 });
 
 app.use("/auth", authRateLimiter, authRoutes);
-app.use("/api", requireAuth, requireCsrfToken, apiRateLimiter, userRoutes);
+app.use("/api", requireAuth, requireCsrfToken, apiRateLimiter, requireApiVersion, userRoutes);
 app.use("/api", requireAuth, requireCsrfToken, apiRateLimiter, requireApiVersion, profileRoutes);
 
 export default app;

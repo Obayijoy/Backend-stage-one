@@ -155,15 +155,13 @@ function verifyPkce(payload: StatePayload, codeVerifier: string | undefined) {
 function serializeAuthResponse(result: Awaited<ReturnType<typeof handleGitHubAuth>>) {
   return {
     status: "success",
+    access_token: result.accessToken,
+    refresh_token: result.refreshToken,
     user: {
       id: result.user.id,
       username: result.user.username,
-      email: result.user.email,
-      avatar_url: result.user.avatar_url,
       role: result.user.role
-    },
-    access_token: result.accessToken,
-    refresh_token: result.refreshToken
+    }
   };
 }
 
@@ -251,21 +249,11 @@ export async function githubCallbackHandler(req: Request, res: Response) {
     const testRole = testRoleFromCode(code);
     const result = testRole ? await handleTestAuth(testRole) : await handleGitHubAuth(code);
 
-    if (statePayload.source === "cli") {
-      if (testRole) {
-        return res.status(200).json(serializeAuthResponse(result));
-      }
-
-      const redirectUrl = new URL("http://localhost:8787/callback");
-      redirectUrl.searchParams.set("access_token", result.accessToken);
-      redirectUrl.searchParams.set("refresh_token", result.refreshToken);
-
-      return res.redirect(redirectUrl.toString());
-    }
-
     setAuthCookies(res, result.accessToken, result.refreshToken);
 
-    if (testRole) {
+    const wantsHtml = req.accepts(["html", "json"]) === "html";
+
+    if (statePayload.source === "cli" || testRole || !wantsHtml) {
       return res.status(200).json(serializeAuthResponse(result));
     }
 
@@ -382,7 +370,8 @@ export async function meHandler(req: AuthenticatedRequest, res: Response) {
       username: user.username,
       email: user.email,
       avatar_url: user.avatar_url,
-      role: user.role
+      role: user.role,
+      is_active: user.is_active
     }
   });
 }
